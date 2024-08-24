@@ -89,7 +89,9 @@ function main(dialogResult){
 	*/
 
 	// Remove every empty layers and groups
-	cleanEmptyElement(qgisLayersGroup, dialogResult);
+	cleanEmptyElement(qgisLayersGroup);
+
+	cleanEmptyBlackorWhiteElement(qgisLayersGroup, dialogResult);
 
 	// Loop on each QGIS Layer (from the last to the first)
 	// Loop from the last to the first because when you move a layer, the list change and thus the indexes and the length too
@@ -114,15 +116,15 @@ function main(dialogResult){
 function openDialog() {
 	var returnValue = null;
 
-	var win = new Window ("dialog", "Removing unwanted objets");
+	var win = new Window ("dialog", "Removing unwanted background objets");
 
 	var wMain = win.add ("group");
 	wMain.orientation = "column";
 	wMain.alignChildren = "left";
-	var rBW = wMain.add ("radiobutton", undefined, "Remove black & white filled objects with no stroke");
-	var rB = wMain.add ("radiobutton", undefined, "Remove black filled objects with no stroke");
-	var rW = wMain.add ("radiobutton", undefined, "Remove white filled objects with no stroke");
-	var rA = wMain.add ("radiobutton", undefined, "Keep all object");
+	var rBW = wMain.add ("radiobutton", undefined, "Remove black & white filled backgrounds with no stroke");
+	var rB = wMain.add ("radiobutton", undefined, "Remove black filled backgrounds with no stroke");
+	var rW = wMain.add ("radiobutton", undefined, "Remove white filled backgrounds with no stroke");
+	var rA = wMain.add ("radiobutton", undefined, "Keep all background objects");
 	rBW.value = true;
 	
 	var wButtons = win.add ("group");
@@ -160,10 +162,14 @@ function openDialog() {
 
 
 
-function cleanEmptyElement(element, dialogResult){
+function cleanEmptyElement(element){
 
 	// Clean transparent path
-	for (var i = element.pathItems.length-1; i >= 0; i--) {
+	for (
+		var i = element.pathItems.length-1; 
+		i >= 0; 
+		i--
+	) {
 		var curPath = element.pathItems[i];
 
 		if ( 
@@ -171,30 +177,21 @@ function cleanEmptyElement(element, dialogResult){
 				!curPath.stroked 
 				&& !curPath.filled
 			)
-			|| (
-				(dialogResult == "rBW" || dialogResult == "rB")
-				&& !curPath.stroked
-				&& curPath.fillColor.red == 0
-				&& curPath.fillColor.green == 0
-				&& curPath.fillColor.blue == 0
-			)
-			|| (
-				(dialogResult == "rBW" || dialogResult == "rW")
-				&& !curPath.stroked
-				&& curPath.fillColor.red == 255
-				&& curPath.fillColor.green == 255
-				&& curPath.fillColor.blue == 255
-			)
 		) {
 			curPath.remove();
 		}
 	}
 
 	// For each subgroup
-	for( var i = element.groupItems.length-1; i >= 0; i-- ) {
+	for(
+		var i = element.groupItems.length-1; 
+		i >= 0; 
+		i--
+	) {
 		if (
-			element.groupItems[i].groupItems.length == 0 
+			element.groupItems[i].groupItems.length == 0
 			&& element.groupItems[i].pathItems.length == 0
+			&& element.groupItems[i].compoundPathItems.length == 0
 			&& element.groupItems[i].textFrames.length == 0
 		) {
 			// Remove it if empty
@@ -203,9 +200,49 @@ function cleanEmptyElement(element, dialogResult){
 		else if (
 			element.groupItems[i].groupItems.length > 0
 			|| element.groupItems[i].pathItems.length > 0
+			|| element.groupItems[i].compoundPathItems.length > 0
 		) {
 			// Reload function on subgroup(s)
-			cleanEmptyElement(element.groupItems[i], dialogResult);
+			cleanEmptyElement(element.groupItems[i]);
+		}
+	};
+
+}
+
+
+
+function cleanEmptyBlackorWhiteElement(element, dialogResult){
+
+	// For each subgroup
+	for(
+		var i = element.groupItems.length-1; 
+		i >= 0; 
+		i--
+	) {
+
+		selectedGroup = element.groupItems[i].groupItems[element.groupItems[i].groupItems.length-1]
+
+		if (
+			selectedGroup.pathItems.length == 1
+			&& !selectedGroup.pathItems[0].stroked
+			&& (
+				(
+					(dialogResult == "rBW" || dialogResult == "rB")
+					&& selectedGroup.pathItems[0].fillColor.red == 0
+					&& selectedGroup.pathItems[0].fillColor.green == 0
+					&& selectedGroup.pathItems[0].fillColor.blue == 0
+				)
+				|| (
+					(dialogResult == "rBW" || dialogResult == "rW")
+					&& selectedGroup.pathItems[0].fillColor.red == 255
+					&& selectedGroup.pathItems[0].fillColor.green == 255
+					&& selectedGroup.pathItems[0].fillColor.blue == 255
+				)
+			) 
+		) {
+
+			// Remove the undesired object
+			selectedGroup.pathItems[0].remove();
 		}
 	};
 
@@ -245,9 +282,7 @@ function organizeLabelLayers(element){
 	*/
 
 	if (element.name.match(/.+ \(Labels\)$/)) {
-		/*
-		Il semble qu'un calque fantome soit toujours positionné en dernier. Il faut donc tester l'avant dernier
-		*/
+		// Text objects + callouts
 		if (
 			element.groupItems[0].textFrames.length > 0
 			&& element.groupItems[element.groupItems.length-2].textFrames.length == 0
@@ -274,6 +309,7 @@ function organizeLabelLayers(element){
 			element.groupItems[0].name = "Text";
 			element.groupItems[element.groupItems.length-2].name = "Callouts";
 		}
+		// Only text objects
 		else if (
 			element.groupItems[0].textFrames.length > 0
 			&& element.groupItems[element.groupItems.length-2].textFrames.length > 0
@@ -293,6 +329,56 @@ function organizeLabelLayers(element){
 					// Move paths to the base group and thus remove the intermediate subgroup
 					var curPath = element.groupItems[i].textFrames[j];
 					curPath.move(element, ElementPlacement.PLACEATEND);
+				}
+			}
+		}
+		// Texts as paths
+		else {
+			// Text objects + callouts
+			if (
+				element.groupItems.length > 0
+				&& element.groupItems[0].compoundPathItems.length > 0
+				&& element.groupItems[element.groupItems.length-2].pathItems.length > 0
+			) {
+
+				// Move each element of each subgroup to the parent group
+				for (
+					var i = element.groupItems.length-1; 
+					i >= 1; 
+					i--
+				) {
+					for (
+						var j = element.groupItems[i].compoundPathItems.length-1; 
+						j >= 0; 
+						j--
+					) {
+						// Move paths to the base group and thus remove the intermediate subgroup
+						var curPath = element.groupItems[i].compoundPathItems[j];
+						curPath.move(element.groupItems[0], ElementPlacement.PLACEATEND);
+					}
+				}
+
+				// Rename the Layer
+				element.groupItems[0].name = "Text";
+				element.groupItems[element.groupItems.length-2].name = "Callouts";
+			}
+			// Only text objects
+			else {
+				// Move each element of each subgroup to the parent group
+				for (
+					var i = element.groupItems.length-1; 
+					i >= 0; 
+					i--
+				) {
+					for (
+						var j = element.groupItems[i].compoundPathItems.length-1; 
+						j >= 0; 
+						j--
+					) {
+						// Move paths to the base group and thus remove the intermediate subgroup
+						var curPath = element.groupItems[i].compoundPathItems[j];
+						curPath.move(element, ElementPlacement.PLACEATEND);
+					}
 				}
 			}
 		}

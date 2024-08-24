@@ -1,41 +1,53 @@
-# Import SVG data from QGIS to Illustrator
+# QGIS2Illustrator - SVG file importer
 
-This script allows you to clean the exported SVG file from the QGIS Composer when importing it into Adobe Illustrator.
+## Introduction
 
-From a QGIS Project :
+This Illustrator script allows you to clean :broom: the exported SVG file from the QGIS Composer when importing it into Adobe Illustrator :ok_hand:
+
+:globe_with_meridians: From a QGIS Project :
+
 ![Screenshot of QGIS.](media/qgis_map.png)
 
-You have to export a SVG file from the composer :
+:rocket: You have to export a SVG file from the composer :
+
 ![Screenshot of the composer of QGIS.](media/composer.png)
 
-You will have a structurated Illustrator project :
+:flight_arrival: Using the scipt to import the SVG file, you will have a structurated Illustrator project :
+- by maps
+- by layer
+  - Labels have their own groups including distinct groups for callouts
+
 ![Screenshot of the Illustrator project in the test directory.](media/illustrator_project.png)
+Note that the provided project contain two :v: imported SVG files.
 
-# Installation
-The script can be run in Illustrator in the menu "Files" => "Scripts" => "Other scripts"
-If you want it to appear in the script list, it have to be placed into the Adobe Illustrator scripts folder (then reboot Illustrator) :
-	Exemple on Windows : C:\Program Files\Adobe\Adobe Illustrator 2021\Presets\fr_FR\Scripts
+## Installation
+The script can be run on Illustrator in the menu "Files" => "Scripts" => "Other scripts"
 
-# QGIS Configuration
-The SVG need to be exported from the QGIS composer. Try to follow the following rules/advices, 
+If you want it to appear in the scripts list, it have to be placed into the Adobe Illustrator scripts folder (then reboot Illustrator) :
+	Example on Windows : _C:\Program Files\Adobe\Adobe Illustrator 20xx\Presets\fr_FR\Scripts_
+
+## QGIS Configuration
+:grey_exclamation: The SVG need to be exported from the QGIS composer. Here is some rules, advices and informations :
 - You need to check the following option when exporting : "Export map layers as SVG Groups" ("Exporter les couches de la carte comme des groupes SVG" in french)
-- You can use the option "Always export Text as text objects" to keep the possibility of managing text properties in Illustrator
+- You can use the option "Always export text as text objects" ("Toujours exporter les textes en tant qu'objet" in french) to keep the possibility of managing text properties in Illustrator
 - Avoid raster layers into you map.
 - Strokes and symbols sizes need to be set in point or in millimeter but never in pixel to be the same into Illustrator.
 - Stroke styles are kept (join, cap, dash pattern...)
-- For surfaces, fill parttern are not correctly managed by the QGIS exporter process : patterns are not clipped.
-- For surfaces, Shapeburst fill (gradient fill) are not supported.
+- For surfaces, fill partterns are not correctly managed by the QGIS exporter process : patterns are not clipped.
+- For surfaces, shapeburst fill are not supported.
 - For surfaces, outlines are managed.
 
-In general, stay simple and do your fancy style into Illustrator.
+In general, stay simple and do your fancy style into Illustrator :wink:
 
-/!\ All object without any stroke and a fill color black (0,0,0) or white (255,255,255) will be removed. This is because the QGIS exporter adds a lots of background object with these two colors but with a fill opacity of 0%.
-The fill opacity propertie cannot be access within the script making these background difficult to detect.
-Some securities are in place : these objects have to be in specific groups so cartographic objects will not be removed but in case of trouble, you can choose to keep then during the proces :
+> [!CAUTION]
+> The exporting process adds a lots of background objects as path whithout any stroke, a fill color of black (0,0,0) or white (255,255,255) and a fill opacity of 0%. 
+> This last properties (fill opacity) cannot been access within the script, making these backgrounds difficult to detect. But it seems that they always are behind objects groups.  
+> The script detects and removes these objects but in case of trouble, you can choose to keep them during the process.
+
 ![Screenshot of choosing the objects to remove.](media/illustrator_dialog.png)
 
 
-# Testing
+## Testing
 Open the QGIS Project into the GeoPackage nammed export_illustrator.gpkg
 
 Export the composer "export_illustrator" to SVG file.
